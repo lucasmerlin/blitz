@@ -1,5 +1,5 @@
 use crate::{BaseDocument, Node as BlitzDomNode, local_name};
-use accesskit::{Node as AccessKitNode, NodeId, Role, Tree, TreeId, TreeUpdate};
+use accesskit::{Node as AccessKitNode, NodeId, Rect, Role, Tree, TreeId, TreeUpdate};
 
 impl BaseDocument {
     pub fn build_accessibility_tree(&self) -> TreeUpdate {
@@ -66,6 +66,19 @@ impl BaseDocument {
 
             builder.set_role(role);
             builder.set_html_tag(name);
+
+            // Populate document-relative bounds so test harnesses (and real
+            // assistive technology) can locate the element on screen.
+            let pos = node.absolute_position(0.0, 0.0);
+            let size = node.final_layout.size;
+            if size.width > 0.0 && size.height > 0.0 {
+                builder.set_bounds(Rect {
+                    x0: pos.x as f64,
+                    y0: pos.y as f64,
+                    x1: (pos.x + size.width) as f64,
+                    y1: (pos.y + size.height) as f64,
+                });
+            }
         } else if node.is_text_node() {
             builder.set_role(Role::TextRun);
             builder.set_value(node.text_content());
