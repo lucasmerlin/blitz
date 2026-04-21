@@ -21,6 +21,12 @@ pub use crate::application::BlitzApplication;
 pub use crate::event::{BlitzShellEvent, BlitzShellProxy};
 pub use crate::window::{View, WindowConfig};
 
+#[cfg(feature = "accessibility")]
+pub use crate::accessibility::{
+    AccessibilityBackend, AccessibilityState, CapturedAccessibility,
+    CapturingAccessibilityBackend, XplatAccessibilityBackend,
+};
+
 #[cfg(feature = "data-uri")]
 pub use crate::net::DataUriNetProvider;
 

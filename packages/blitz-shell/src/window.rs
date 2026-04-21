@@ -26,12 +26,14 @@ use winit::window::{Theme, WindowAttributes, WindowId};
 use winit::{event::Modifiers, event::WindowEvent, keyboard::KeyCode, window::Window};
 
 #[cfg(feature = "accessibility")]
-use crate::accessibility::AccessibilityState;
+use crate::accessibility::{AccessibilityBackend, AccessibilityState};
 
 pub struct WindowConfig<Rend: WindowRenderer> {
     doc: Box<dyn Document>,
     attributes: WindowAttributes,
     renderer: Rend,
+    #[cfg(feature = "accessibility")]
+    accessibility_backend: Option<Box<dyn AccessibilityBackend>>,
 }
 
 impl<Rend: WindowRenderer> WindowConfig<Rend> {
@@ -48,7 +50,20 @@ impl<Rend: WindowRenderer> WindowConfig<Rend> {
             doc,
             attributes,
             renderer,
+            #[cfg(feature = "accessibility")]
+            accessibility_backend: None,
         }
+    }
+
+    /// Install a custom accessibility backend (e.g. a test capture shim) for
+    /// the window. If not set, the default OS-accessibility adapter is used.
+    #[cfg(feature = "accessibility")]
+    pub fn with_accessibility_backend(
+        mut self,
+        backend: Box<dyn AccessibilityBackend>,
+    ) -> Self {
+        self.accessibility_backend = Some(backend);
+        self
     }
 }
 
@@ -96,7 +111,10 @@ impl<Rend: WindowRenderer> View<Rend> {
 
         let winit_window: Arc<dyn Window> = Arc::from(event_loop.create_window(attrs).unwrap());
         #[cfg(feature = "accessibility")]
-        let accessibility = AccessibilityState::new(&*winit_window, proxy.clone());
+        let accessibility = match config.accessibility_backend {
+            Some(backend) => AccessibilityState::with_backend(backend),
+            None => AccessibilityState::new(&*winit_window, proxy.clone()),
+        };
 
         if is_visible {
             winit_window.set_visible(true);
